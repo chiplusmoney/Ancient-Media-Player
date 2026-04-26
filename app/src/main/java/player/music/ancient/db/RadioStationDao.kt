@@ -21,7 +21,7 @@ interface RadioStationDao {
     fun getAllRadioStations(): LiveData<List<RadioStationEntity>>
 
     @Query("SELECT * FROM radio_stations ORDER BY name COLLATE NOCASE ASC")
-    suspend fun getAllRadioStationsSync(): List<RadioStationEntity>
+    fun getAllRadioStationsSync(): List<RadioStationEntity>
 
     @Query("SELECT * FROM radio_stations WHERE station_id = :id")
     suspend fun getRadioStationById(id: Long): RadioStationEntity?

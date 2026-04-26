@@ -8,12 +8,11 @@ import android.view.animation.Animation
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import player.music.ancient.db.RadioCategoryEntity
 import player.music.ancient.R
 import player.music.ancient.databinding.ItemRadioStationBinding
 import player.music.ancient.db.RadioStationEntity
+import player.music.ancient.util.RadioArtworkLoader
 
 class RadioAdapter(
     private val onClick: (RadioStationEntity) -> Unit,
@@ -26,9 +25,10 @@ class RadioAdapter(
     fun setCurrentPlayingUri(uri: String?) {
         val oldUri = currentPlayingUri
         currentPlayingUri = uri
-        if (oldUri != currentPlayingUri) {
-            notifyDataSetChanged() // Simplest for now, can be optimized if needed
-        }
+        if (oldUri == currentPlayingUri) return
+
+        notifyPlayingStateChanged(oldUri)
+        notifyPlayingStateChanged(currentPlayingUri)
     }
 
     fun submitCategories(categories: List<RadioCategoryEntity>) {
@@ -51,6 +51,11 @@ class RadioAdapter(
         holder.bind(station, station.uri == currentPlayingUri)
     }
 
+    override fun onViewRecycled(holder: RadioViewHolder) {
+        holder.clearTransientUiState()
+        super.onViewRecycled(holder)
+    }
+
     inner class RadioViewHolder(private val binding: ItemRadioStationBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
@@ -58,23 +63,21 @@ class RadioAdapter(
             binding.title.text = station.name
             binding.text.text = station.uri
 
-            Glide.with(binding.image.context)
-                .load(station.imageUri)
-                .placeholder(R.drawable.ic_radio)
-                .error(R.drawable.ic_radio)
-                .transition(DrawableTransitionOptions.withCrossFade())
-                .into(binding.image)
+            RadioArtworkLoader.load(
+                imageView = binding.image,
+                imageUri = station.imageUri,
+                placeholderRes = R.drawable.ic_radio
+            )
 
             val category = station.categoryId?.let(categoryMap::get)
             if (category != null) {
                 binding.categoryContainer.visibility = View.VISIBLE
                 binding.categoryText.text = category.name
-                Glide.with(binding.categoryImage.context)
-                    .load(category.imageUri)
-                    .placeholder(R.drawable.ic_folder)
-                    .error(R.drawable.ic_folder)
-                    .transition(DrawableTransitionOptions.withCrossFade())
-                    .into(binding.categoryImage)
+                RadioArtworkLoader.load(
+                    imageView = binding.categoryImage,
+                    imageUri = category.imageUri,
+                    placeholderRes = R.drawable.ic_folder
+                )
             } else {
                 binding.categoryContainer.visibility = View.GONE
                 binding.categoryImage.setImageResource(R.drawable.ic_folder)
@@ -85,7 +88,7 @@ class RadioAdapter(
                 startLiveAnimation(binding.liveDot)
             } else {
                 binding.liveIndicator.visibility = View.GONE
-                binding.liveDot.clearAnimation()
+                clearTransientUiState()
             }
 
             binding.root.setOnClickListener {
@@ -109,6 +112,21 @@ class RadioAdapter(
             anim.repeatMode = Animation.REVERSE
             anim.repeatCount = Animation.INFINITE
             view.startAnimation(anim)
+        }
+
+        fun clearTransientUiState() {
+            binding.liveDot.clearAnimation()
+            binding.root.animate().cancel()
+            binding.root.scaleX = 1f
+            binding.root.scaleY = 1f
+        }
+    }
+
+    private fun notifyPlayingStateChanged(uri: String?) {
+        if (uri == null) return
+        val position = currentList.indexOfFirst { it.uri == uri }
+        if (position != RecyclerView.NO_POSITION && position >= 0) {
+            notifyItemChanged(position)
         }
     }
 

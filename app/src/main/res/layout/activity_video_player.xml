@@ -1,31 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Cinema-grade immersive video player.
+     Full-screen, no system chrome. Gesture feedback overlay uses
+     the aether_video_feedback_bg glassmorphic background. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fitsSystemWindows="true">
-
-    <com.google.android.material.appbar.AppBarLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:fitsSystemWindows="true"
-        app:liftOnScroll="true">
-
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar"
-            style="@style/Toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:navigationIcon="@drawable/ic_arrow_back"
-            app:titleTextAppearance="@style/ToolbarTextAppearanceNormal" />
-    </com.google.android.material.appbar.AppBarLayout>
+    android:background="@color/aether_surface_container_lowest">
 
     <androidx.media3.ui.PlayerView
         android:id="@+id/playerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@android:color/black"
-        app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior"
+        android:background="@color/aether_surface_container_lowest"
+        app:resize_mode="fit"
         app:show_buffering="when_playing"
         app:use_artwork="false" />
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+    <!-- Poster / preview frame (shown before playback starts) -->
+    <ImageView
+        android:id="@+id/posterView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="centerCrop"
+        android:visibility="gone" />
+
+    <!-- Gesture feedback HUD — glassmorphic overlay
+         centered on screen, with icon + percentage text -->
+    <LinearLayout
+        android:id="@+id/feedbackOverlay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="@drawable/aether_video_feedback_bg"
+        android:gravity="center"
+        android:minWidth="100dp"
+        android:orientation="vertical"
+        android:paddingHorizontal="24dp"
+        android:paddingVertical="20dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/feedbackIcon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:importantForAccessibility="no"
+            app:srcCompat="@drawable/ic_volume_up"
+            app:tint="@color/aether_primary" />
+
+        <TextView
+            android:id="@+id/feedbackText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:fontFamily="@font/manrope"
+            android:textColor="@color/aether_on_surface"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</FrameLayout>

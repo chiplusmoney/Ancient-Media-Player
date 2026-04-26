@@ -142,7 +142,10 @@
         <activity android:name=".activities.tageditor.SongTagEditorActivity" />
         <activity android:name=".activities.SupportDevelopmentActivity" />
         <activity android:name=".activities.LicenseActivity" />
-        <activity android:name=".activities.VideoPlayerActivity" />
+        <activity
+            android:name=".activities.VideoPlayerActivity"
+            android:configChanges="orientation|screenLayout|screenSize|smallestScreenSize"
+            android:supportsPictureInPicture="true" />
         <activity android:name=".activities.bugreport.BugReportActivity" />
         <activity android:name=".activities.ShareInstagramStory" />
         <activity android:name=".activities.DriveModeActivity" />

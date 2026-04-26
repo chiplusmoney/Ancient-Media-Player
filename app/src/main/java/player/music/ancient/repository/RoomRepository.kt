@@ -44,7 +44,7 @@ interface RoomRepository {
     fun checkPlaylistExists(playListId: Long): LiveData<Boolean>
     fun getPlaylist(playlistId: Long): LiveData<PlaylistWithSongs>
     fun getAllRadioStations(): LiveData<List<RadioStationEntity>>
-    suspend fun getAllRadioStationsSync(): List<RadioStationEntity>
+    fun getAllRadioStationsSync(): List<RadioStationEntity>
     suspend fun insertRadioStation(radioStation: RadioStationEntity): Long
     suspend fun deleteRadioStation(radioStation: RadioStationEntity)
     suspend fun updateRadioStation(radioStation: RadioStationEntity)
@@ -66,6 +66,12 @@ interface RoomRepository {
     suspend fun insertYoutubeChannel(channel: YoutubeChannelEntity): Long
     suspend fun deleteYoutubeChannel(channel: YoutubeChannelEntity)
     suspend fun updateYoutubeChannel(channel: YoutubeChannelEntity)
+    fun getCachedYoutubeVideos(sourceChannelIds: List<Long>): LiveData<List<YoutubeVideoEntity>>
+    suspend fun replaceCachedYoutubeVideos(
+        sourceChannelId: Long,
+        videos: List<YoutubeVideoEntity>
+    )
+    suspend fun pruneCachedYoutubeVideos(validSourceChannelIds: List<Long>)
 }
 
 class RealRoomRepository(
@@ -76,7 +82,8 @@ class RealRoomRepository(
     private val radioCategoryDao: RadioCategoryDao,
     private val tvChannelDao: TvChannelDao,
     private val tvCategoryDao: TvCategoryDao,
-    private val youtubeChannelDao: YoutubeChannelDao
+    private val youtubeChannelDao: YoutubeChannelDao,
+    private val youtubeVideoDao: YoutubeVideoDao
 ) : RoomRepository {
     @WorkerThread
     override suspend fun createPlaylist(playlistEntity: PlaylistEntity): Long =
@@ -212,7 +219,7 @@ class RealRoomRepository(
     override fun getAllRadioStations(): LiveData<List<RadioStationEntity>> =
         radioStationDao.getAllRadioStations()
 
-    override suspend fun getAllRadioStationsSync(): List<RadioStationEntity> =
+    override fun getAllRadioStationsSync(): List<RadioStationEntity> =
         radioStationDao.getAllRadioStationsSync()
 
     override suspend fun insertRadioStation(radioStation: RadioStationEntity): Long =
@@ -277,4 +284,20 @@ class RealRoomRepository(
 
     override suspend fun updateYoutubeChannel(channel: YoutubeChannelEntity) =
         youtubeChannelDao.updateYoutubeChannel(channel)
+
+    override fun getCachedYoutubeVideos(sourceChannelIds: List<Long>): LiveData<List<YoutubeVideoEntity>> =
+        youtubeVideoDao.observeVideosForSources(sourceChannelIds)
+
+    override suspend fun replaceCachedYoutubeVideos(
+        sourceChannelId: Long,
+        videos: List<YoutubeVideoEntity>
+    ) = youtubeVideoDao.replaceVideosForSource(sourceChannelId, videos)
+
+    override suspend fun pruneCachedYoutubeVideos(validSourceChannelIds: List<Long>) {
+        if (validSourceChannelIds.isEmpty()) {
+            youtubeVideoDao.clear()
+        } else {
+            youtubeVideoDao.deleteVideosForOtherSources(validSourceChannelIds)
+        }
+    }
 }

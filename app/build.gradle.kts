@@ -24,15 +24,20 @@ android {
         versionCode = 1
         versionName = "Visualisation"
 
-        buildConfigField("String", "GOOGLE_PLAY_LICENSING_KEY", "\"${getProperty(getProperties("../public.properties"), "GOOGLE_PLAY_LICENSE_KEY")}\"")
+        buildConfigField("String", "GOOGLE_PLAY_LICENSING_KEY", "\"${getProperty("GOOGLE_PLAY_LICENSE_KEY", getProperties("../public.properties"))}\"")
+        buildConfigField(
+            "String",
+            "YOUTUBE_API_KEY",
+            "\"${getProperty("YOUTUBE_API_KEY", getProperties("../local.properties"), getProperties("local.properties"))}\""
+        )
     }
     val signingProperties = getProperties("retro.properties")
     val theSigningConfig = if (signingProperties != null) {
         signingConfigs.create("release") {
-            storeFile = file(getProperty(signingProperties, "storeFile"))
-            keyAlias = getProperty(signingProperties, "keyAlias")
-            storePassword = getProperty(signingProperties, "storePassword")
-            keyPassword = getProperty(signingProperties, "keyPassword")
+            storeFile = file(getProperty("storeFile", signingProperties))
+            keyAlias = getProperty("keyAlias", signingProperties)
+            storePassword = getProperty("storePassword", signingProperties)
+            keyPassword = getProperty("keyPassword", signingProperties)
         }
     } else {
         signingConfigs.getByName("debug")
@@ -191,5 +196,10 @@ fun getProperties(fileName: String): Properties? {
     return properties
 }
 
-fun getProperty(properties: Properties?, name: String): String =
-    properties?.getProperty(name) ?: "$name missing"
+fun getProperty(name: String, vararg properties: Properties?): String =
+    properties
+        .asSequence()
+        .filterNotNull()
+        .mapNotNull { it.getProperty(name) }
+        .firstOrNull()
+        ?: "$name missing"

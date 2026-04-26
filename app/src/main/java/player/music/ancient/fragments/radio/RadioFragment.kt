@@ -14,10 +14,17 @@ import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.SearchView
+import androidx.core.view.isVisible
+import androidx.core.view.updateLayoutParams
 import androidx.core.widget.doAfterTextChanged
+import androidx.interpolator.view.animation.FastOutSlowInInterpolator
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.transition.AutoTransition
+import androidx.transition.Fade
+import androidx.transition.TransitionManager
+import androidx.transition.TransitionSet
 import com.github.dhaval2404.imagepicker.ImagePicker
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -41,8 +48,8 @@ import player.music.ancient.helper.MusicPlayerRemote
 import player.music.ancient.model.Song
 import player.music.ancient.util.PreferenceUtil
 import player.music.ancient.util.RadioImageStore
+import player.music.ancient.util.RadioArtworkLoader
 import player.music.ancient.util.ToolbarContentTintHelper
-import com.bumptech.glide.Glide
 import java.net.HttpURLConnection
 import java.net.URLEncoder
 import java.net.URL
@@ -62,6 +69,17 @@ class RadioFragment : AbsMainActivityFragment(R.layout.fragment_radio) {
     private var dY = 0f
     private var initialX = 0f
     private var initialY = 0f
+    private var isDashboardExpanded = true
+
+    private val dashboardTransition by lazy {
+        TransitionSet()
+            .addTransition(AutoTransition())
+            .addTransition(Fade())
+            .apply {
+                duration = DASHBOARD_ANIMATION_DURATION_MS
+                interpolator = FastOutSlowInInterpolator()
+            }
+    }
 
     private val artworkPickerLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -121,20 +139,59 @@ class RadioFragment : AbsMainActivityFragment(R.layout.fragment_radio) {
 
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerView.adapter = adapter
+        isDashboardExpanded =
+            savedInstanceState?.getBoolean(KEY_DASHBOARD_EXPANDED) ?: true
+        binding.radioHubDashboard.setOnClickListener { toggleDashboard() }
+        binding.dashboardToggleButton.setOnClickListener { toggleDashboard() }
+        applyDashboardExpandedState(animate = false)
 
         viewModel.radioCategories.observe(viewLifecycleOwner) { categories ->
             radioCategories = categories.orEmpty()
             adapter.submitCategories(radioCategories)
+            preloadCategoryArtwork(radioCategories)
         }
 
         viewModel.radioStations.observe(viewLifecycleOwner) { stations ->
             syncKnownStations(stations.orEmpty())
             adapter.submitList(stations)
             updateEmptyState(stations.isNullOrEmpty())
+            preloadStationArtwork(stations.orEmpty())
         }
 
         setupFab()
         updateLiveIndicator()
+    }
+
+    private fun toggleDashboard() {
+        isDashboardExpanded = !isDashboardExpanded
+        applyDashboardExpandedState(animate = true)
+    }
+
+    private fun applyDashboardExpandedState(animate: Boolean) {
+        if (_binding == null) return
+
+        if (animate) {
+            TransitionManager.beginDelayedTransition(binding.radioHubDashboard, dashboardTransition)
+        }
+
+        binding.hubExpandedContent.isVisible = isDashboardExpanded
+        binding.hubBackgroundImage.updateLayoutParams {
+            height = if (isDashboardExpanded) {
+                resources.getDimensionPixelSize(R.dimen.radio_hub_expanded_height)
+            } else {
+                resources.getDimensionPixelSize(R.dimen.radio_hub_collapsed_height)
+            }
+        }
+
+        val targetRotation = if (isDashboardExpanded) 0f else 180f
+        if (animate) {
+            binding.dashboardToggleButton.animate()
+                .rotation(targetRotation)
+                .setDuration(DASHBOARD_ANIMATION_DURATION_MS)
+                .start()
+        } else {
+            binding.dashboardToggleButton.rotation = targetRotation
+        }
     }
 
     private fun setupFab() {
@@ -589,10 +646,26 @@ class RadioFragment : AbsMainActivityFragment(R.layout.fragment_radio) {
     private fun updateLiveIndicator() {
         if (_binding == null) return
         val currentSong = MusicPlayerRemote.currentSong
-        if (MusicPlayerRemote.isPlaying && currentSong.isRadio) {
+        val isRadioPlaying = MusicPlayerRemote.isPlaying && currentSong.isRadio
+
+        if (isRadioPlaying) {
             adapter.setCurrentPlayingUri(currentSong.data)
+            binding.radioHubDashboard.visibility = View.VISIBLE
+            binding.hubStationName.text = currentSong.title
+            binding.hubLiveIndicator.visibility = View.VISIBLE
+
+            val artworkUri = viewModel.radioStations.value?.find { it.uri == currentSong.data }?.imageUri
+            val heroWidth = if (PreferenceUtil.batterySaverMode) 512 else 1024
+            val heroHeight = if (PreferenceUtil.batterySaverMode) 288 else 576
+            RadioArtworkLoader.preload(requireContext(), artworkUri, heroWidth, heroHeight)
+            updateImagePreview(binding.hubStationArt, artworkUri, R.drawable.ic_radio)
+            updateImagePreview(binding.hubBackgroundImage, artworkUri, R.drawable.default_audio_art)
         } else {
             adapter.setCurrentPlayingUri(null)
+            binding.hubLiveIndicator.visibility = View.GONE
+            binding.hubStationName.text = getString(R.string.radio_offline)
+            updateImagePreview(binding.hubStationArt, null, R.drawable.ic_radio)
+            updateImagePreview(binding.hubBackgroundImage, null, R.drawable.default_audio_art)
         }
     }
 
@@ -600,6 +673,27 @@ class RadioFragment : AbsMainActivityFragment(R.layout.fragment_radio) {
         if (_binding == null) return
         binding.emptyState.root.visibility = if (isEmpty) View.VISIBLE else View.GONE
         binding.recyclerView.visibility = if (isEmpty) View.GONE else View.VISIBLE
+        binding.radioHubDashboard.visibility = if (isEmpty) View.GONE else View.VISIBLE
+    }
+
+    private fun preloadCategoryArtwork(categories: List<RadioCategoryEntity>) {
+        val preloadCount = if (PreferenceUtil.batterySaverMode) 2 else 4
+        categories.take(preloadCount).forEach { category ->
+            RadioArtworkLoader.preload(requireContext(), category.imageUri, 120, 120)
+        }
+    }
+
+    private fun preloadStationArtwork(stations: List<RadioStationEntity>) {
+        val preloadCount = if (PreferenceUtil.batterySaverMode) 3 else 8
+        val preloadSize = if (PreferenceUtil.batterySaverMode) 256 else 512
+        stations.take(preloadCount).forEach { station ->
+            RadioArtworkLoader.preload(
+                requireContext(),
+                station.imageUri,
+                preloadSize,
+                preloadSize
+            )
+        }
     }
 
     private fun showStationBottomSheet(station: RadioStationEntity? = null) {
@@ -848,11 +942,7 @@ class RadioFragment : AbsMainActivityFragment(R.layout.fragment_radio) {
     }
 
     private fun updateImagePreview(imageView: ImageView, imageUri: String?, placeholderRes: Int) {
-        Glide.with(imageView.context)
-            .load(imageUri)
-            .placeholder(placeholderRes)
-            .error(placeholderRes)
-            .into(imageView)
+        RadioArtworkLoader.load(imageView, imageUri, placeholderRes)
     }
 
     private fun launchArtworkPicker(kind: ArtworkKind, onImageReady: (String) -> Unit) {
@@ -919,6 +1009,11 @@ class RadioFragment : AbsMainActivityFragment(R.layout.fragment_radio) {
             .trim()
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean(KEY_DASHBOARD_EXPANDED, isDashboardExpanded)
+        super.onSaveInstanceState(outState)
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
@@ -961,6 +1056,8 @@ class RadioFragment : AbsMainActivityFragment(R.layout.fragment_radio) {
     }
 
     companion object {
+        private const val KEY_DASHBOARD_EXPANDED = "key_dashboard_expanded"
+        private const val DASHBOARD_ANIMATION_DURATION_MS = 260L
         private const val CLICK_DRAG_TOLERANCE = 10f
         private const val MENU_MANAGE_CATEGORIES = 1001
         private const val NO_CATEGORY_LABEL = "No Category"

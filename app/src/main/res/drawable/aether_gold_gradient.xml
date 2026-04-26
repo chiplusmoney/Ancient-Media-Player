@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Signature gold gradient for primary CTAs and active highlights.
+     45-degree angle from primary → primary_container per the design system. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="45"
+        android:startColor="@color/aether_primary"
+        android:endColor="@color/aether_primary_container"
+        android:type="linear" />
+    <corners android:radius="24dp" />
+</shape>

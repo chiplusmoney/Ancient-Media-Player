@@ -5,6 +5,7 @@ import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
+import androidx.core.app.ActivityOptionsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -37,8 +38,22 @@ class VideoFragment : AbsMainActivityFragment(R.layout.fragment_video) {
         binding.emptyState.titleView.text = "No Videos Found"
         binding.emptyState.messageView.text = "Device videos you can play will appear here."
 
-        adapter = VideoAdapter {
-            startActivity(VideoPlayerActivity.intent(requireContext(), it.title, it.uri))
+        adapter = VideoAdapter { item, sharedView ->
+            val transitionName = VideoPlayerActivity.transitionNameFor(item.id)
+            val options = ActivityOptionsCompat.makeSceneTransitionAnimation(
+                requireActivity(),
+                sharedView,
+                transitionName
+            )
+            startActivity(
+                VideoPlayerActivity.intent(
+                    context = requireContext(),
+                    title = item.title,
+                    uri = item.uri,
+                    transitionName = transitionName
+                ),
+                options.toBundle()
+            )
         }
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerView.adapter = adapter

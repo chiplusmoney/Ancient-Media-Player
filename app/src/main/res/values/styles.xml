@@ -273,4 +273,65 @@
         <item name="background">@android:color/transparent</item>
         <item name="haloRadius">0dp</item>
     </style>
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- Aether Gold / Sonic Aurora Design System      -->
+    <!-- ══════════════════════════════════════════════ -->
+
+    <!-- Circle shape for station artwork -->
+    <style name="CircleShapeAppearance" parent="">
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <!-- Headline: Manrope bold, 24sp -->
+    <style name="Aether.Headline" parent="">
+        <item name="fontFamily">@font/manrope</item>
+        <item name="android:fontFamily">@font/manrope</item>
+        <item name="android:textSize">24sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/aether_on_surface</item>
+    </style>
+
+    <!-- Section header: Manrope semibold, 18sp -->
+    <style name="Aether.SectionHeader" parent="">
+        <item name="fontFamily">@font/manrope</item>
+        <item name="android:fontFamily">@font/manrope</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/aether_on_surface</item>
+    </style>
+
+    <!-- Body text: standard readable, subdued -->
+    <style name="Aether.Body" parent="">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/aether_on_surface_variant</item>
+    </style>
+
+    <!-- Label / overline: tiny uppercase tracking -->
+    <style name="Aether.Label" parent="">
+        <item name="fontFamily">@font/manrope</item>
+        <item name="android:fontFamily">@font/manrope</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:letterSpacing">0.08</item>
+        <item name="android:textColor">@color/aether_on_surface_variant</item>
+    </style>
+
+    <!-- Gold pill button -->
+    <style name="Aether.Button.Gold" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/aether_primary</item>
+        <item name="android:textColor">@color/aether_on_primary</item>
+        <item name="cornerRadius">24dp</item>
+        <item name="fontFamily">@font/manrope</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- Ghost / outlined button -->
+    <style name="Aether.Button.Ghost" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="strokeColor">@color/aether_primary</item>
+        <item name="android:textColor">@color/aether_primary</item>
+        <item name="cornerRadius">24dp</item>
+        <item name="fontFamily">@font/manrope</item>
+    </style>
+
 </resources>

@@ -69,4 +69,6 @@
     <dimen name="seekbar_padding">16dp</dimen>
     <dimen name="cast_mini_controller_height">64dp</dimen>
     <dimen name="cast_mini_controller_image_size">48dp</dimen>
+    <dimen name="radio_hub_expanded_height">220dp</dimen>
+    <dimen name="radio_hub_collapsed_height">132dp</dimen>
 </resources>

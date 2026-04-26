@@ -7,6 +7,7 @@ import player.music.ancient.db.MIGRATION_23_24
 import player.music.ancient.db.MIGRATION_24_25
 import player.music.ancient.db.MIGRATION_25_26
 import player.music.ancient.db.MIGRATION_26_27
+import player.music.ancient.db.MIGRATION_27_28
 import player.music.ancient.db.AncientDatabase
 import player.music.ancient.fragments.LibraryViewModel
 import player.music.ancient.fragments.albums.AlbumDetailsViewModel
@@ -21,6 +22,7 @@ import player.music.ancient.network.provideDefaultCache
 import player.music.ancient.network.provideLastFmRest
 import player.music.ancient.network.provideLastFmRetrofit
 import player.music.ancient.network.provideOkHttp
+import player.music.ancient.network.provideYoutubeRest
 import player.music.ancient.repository.*
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
@@ -41,13 +43,22 @@ val networkModule = module {
     single {
         provideLastFmRest(get())
     }
+    single {
+        provideYoutubeRest(get())
+    }
 }
 
 private val roomModule = module {
 
     single {
         Room.databaseBuilder(androidContext(), AncientDatabase::class.java, "playlist.db")
-            .addMigrations(MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27)
+            .addMigrations(
+                MIGRATION_23_24,
+                MIGRATION_24_25,
+                MIGRATION_25_26,
+                MIGRATION_26_27,
+                MIGRATION_27_28
+            )
             .build()
     }
 
@@ -83,14 +94,19 @@ private val roomModule = module {
         get<AncientDatabase>().youtubeChannelDao()
     }
 
+    factory {
+        get<AncientDatabase>().youtubeVideoDao()
+    }
+
     single {
-        RealRoomRepository(get(), get(), get(), get(), get(), get(), get(), get())
+        RealRoomRepository(get(), get(), get(), get(), get(), get(), get(), get(), get())
     } bind RoomRepository::class
 }
 private val autoModule = module {
     single {
         AutoMusicProvider(
             androidContext(),
+            get(),
             get(),
             get(),
             get(),
@@ -216,7 +232,7 @@ private val viewModules = module {
     }
 
     viewModel {
-        YoutubeViewModel(get())
+        YoutubeViewModel(get(), get())
     }
 }
 

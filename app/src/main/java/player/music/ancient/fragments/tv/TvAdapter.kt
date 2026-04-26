@@ -9,12 +9,13 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import player.music.ancient.R
+import player.music.ancient.activities.VideoPlayerActivity
 import player.music.ancient.databinding.ItemRadioStationBinding
 import player.music.ancient.db.TvCategoryEntity
 import player.music.ancient.db.TvChannelEntity
 
 class TvAdapter(
-    private val onClick: (TvChannelEntity) -> Unit,
+    private val onClick: (TvChannelEntity, View) -> Unit,
     private val onLongClick: (TvChannelEntity) -> Unit
 ) : ListAdapter<TvChannelEntity, TvAdapter.TvViewHolder>(DiffCallback) {
 
@@ -41,6 +42,7 @@ class TvAdapter(
         fun bind(channel: TvChannelEntity) {
             binding.title.text = channel.name
             binding.text.text = channel.url
+            binding.image.transitionName = VideoPlayerActivity.transitionNameFor(channel.id)
 
             Glide.with(binding.image.context)
                 .load(channel.imageUri)
@@ -64,7 +66,7 @@ class TvAdapter(
             }
 
             binding.liveIndicator.visibility = View.VISIBLE
-            binding.root.setOnClickListener { onClick(channel) }
+            binding.root.setOnClickListener { onClick(channel, binding.image) }
             binding.root.setOnLongClickListener {
                 onLongClick(channel)
                 true

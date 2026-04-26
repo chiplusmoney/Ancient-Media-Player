@@ -17,6 +17,7 @@ import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.core.app.ActivityOptionsCompat
 import com.github.dhaval2404.imagepicker.ImagePicker
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -186,10 +187,16 @@ class TvFragment : AbsMainActivityFragment(R.layout.fragment_tv) {
         PreferenceUtil.tvDefaultsInitialized = true
     }
 
-    private fun openChannel(channel: TvChannelEntity) {
+    private fun openChannel(channel: TvChannelEntity, sharedView: View) {
         lifecycleScope.launch {
             when (val launchTarget = withContext(Dispatchers.IO) { TvStreamResolver.resolve(channel.url) }) {
                 is NativeTvLaunchTarget -> {
+                    val transitionName = VideoPlayerActivity.transitionNameFor(channel.id)
+                    val options = ActivityOptionsCompat.makeSceneTransitionAnimation(
+                        requireActivity(),
+                        sharedView,
+                        transitionName
+                    )
                     startActivity(
                         VideoPlayerActivity.intent(
                             context = requireContext(),
@@ -197,8 +204,10 @@ class TvFragment : AbsMainActivityFragment(R.layout.fragment_tv) {
                             uri = launchTarget.streamUrl,
                             referer = launchTarget.referer,
                             origin = launchTarget.origin,
-                            userAgent = launchTarget.userAgent
-                        )
+                            userAgent = launchTarget.userAgent,
+                            transitionName = transitionName
+                        ),
+                        options.toBundle()
                     )
                 }
 

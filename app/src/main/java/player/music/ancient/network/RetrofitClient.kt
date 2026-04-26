@@ -86,3 +86,20 @@ fun provideLyrics(retrofit: Retrofit): LyricsRestService {
         .build()
     return newBuilder.create(LyricsRestService::class.java)
 }
+
+fun provideYoutubeRest(client: OkHttpClient): YoutubeApiService {
+    @Suppress("DEPRECATION")
+    val gson = GsonBuilder()
+        .setLenient()
+        .create()
+    val youtubeClient = client.newBuilder()
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
+        .build()
+    return Retrofit.Builder()
+        .baseUrl("https://www.googleapis.com/youtube/v3/")
+        .addConverterFactory(GsonConverterFactory.create(gson))
+        .callFactory { request -> youtubeClient.newCall(request) }
+        .build()
+        .create(YoutubeApiService::class.java)
+}

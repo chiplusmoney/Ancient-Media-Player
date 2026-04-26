@@ -16,7 +16,9 @@ package player.music.ancient.auto
 import android.content.Context
 import android.content.res.Resources
 import android.support.v4.media.MediaBrowserCompat
+import androidx.core.net.toUri
 import player.music.ancient.R
+import player.music.ancient.db.RadioStationEntity
 import player.music.ancient.helper.MusicPlayerRemote
 import player.music.ancient.model.CategoryInfo
 import player.music.ancient.model.Song
@@ -37,7 +39,8 @@ class AutoMusicProvider(
     private val artistsRepository: ArtistRepository,
     private val genresRepository: GenreRepository,
     private val playlistsRepository: PlaylistRepository,
-    private val topPlayedRepository: TopPlayedRepository
+    private val topPlayedRepository: TopPlayedRepository,
+    private val roomRepository: RoomRepository
 ) {
     private var mMusicService: WeakReference<MusicService>? = null
 
@@ -116,6 +119,10 @@ class AutoMusicProvider(
                             )
                         }
                     }
+            AutoMediaIDHelper.MEDIA_ID_RADIO ->
+                roomRepository.getAllRadioStationsSync().forEach { station ->
+                    mediaItems.add(getPlayableRadioStation(mediaId, station))
+                }
             else -> {
                 getPlaylistChildren(mediaId, mediaItems)
             }
@@ -150,6 +157,7 @@ class AutoMusicProvider(
 
     private fun getRootChildren(resources: Resources): List<MediaBrowserCompat.MediaItem> {
         val mediaItems: MutableList<MediaBrowserCompat.MediaItem> = ArrayList()
+        val savedStations = roomRepository.getAllRadioStationsSync()
         val libraryCategories = PreferenceUtil.libraryCategory
         libraryCategories.forEach {
             if (it.visible) {
@@ -205,6 +213,23 @@ class AutoMusicProvider(
                     }
                 }
             }
+        }
+        if (savedStations.isNotEmpty()) {
+            mediaItems.add(
+                AutoMediaItem.with(mContext)
+                    .asBrowsable()
+                    .path(AutoMediaIDHelper.MEDIA_ID_RADIO)
+                    .icon(R.drawable.ic_radio)
+                    .title(resources.getString(R.string.radio))
+                    .subTitle(
+                        resources.getQuantityString(
+                            R.plurals.auto_radio_station_count,
+                            savedStations.size,
+                            savedStations.size
+                        )
+                    )
+                    .build()
+            )
         }
         mediaItems.add(
             AutoMediaItem.with(mContext)
@@ -279,5 +304,25 @@ class AutoMusicProvider(
             .subTitle(song.artistName)
             .icon(MusicUtil.getMediaStoreAlbumCoverUri(song.albumId))
             .build()
+    }
+
+    private fun getPlayableRadioStation(
+        mediaId: String?,
+        station: RadioStationEntity
+    ): MediaBrowserCompat.MediaItem {
+        val builder = AutoMediaItem.with(mContext)
+            .asPlayable()
+            .path(mediaId, station.id)
+            .title(station.name)
+            .subTitle(station.uri)
+
+        val imageUri = station.imageUri?.takeIf { it.isNotBlank() }?.toUri()
+        if (imageUri != null) {
+            builder.icon(imageUri)
+        } else {
+            builder.icon(R.drawable.ic_radio)
+        }
+
+        return builder.build()
     }
 }

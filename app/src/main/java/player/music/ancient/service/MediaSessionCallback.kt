@@ -21,6 +21,7 @@ import player.music.ancient.auto.AutoMediaIDHelper
 import player.music.ancient.helper.MusicPlayerRemote
 import player.music.ancient.helper.MusicPlayerRemote.cycleRepeatMode
 import player.music.ancient.helper.ShuffleHelper.makeShuffleList
+import player.music.ancient.db.RadioStationEntity
 import player.music.ancient.model.Album
 import player.music.ancient.model.Artist
 import player.music.ancient.model.Playlist
@@ -49,6 +50,7 @@ class MediaSessionCallback(
     private val genreRepository by inject<GenreRepository>()
     private val playlistRepository by inject<PlaylistRepository>()
     private val topPlayedRepository by inject<TopPlayedRepository>()
+    private val roomRepository by inject<RoomRepository>()
 
     override fun onPlayFromMediaId(mediaId: String?, extras: Bundle?) {
         super.onPlayFromMediaId(mediaId, extras)
@@ -87,17 +89,22 @@ class MediaSessionCallback(
                 makeShuffleList(allSongs, -1)
                 musicService.openQueue(allSongs, 0, true)
             }
+            AutoMediaIDHelper.MEDIA_ID_RADIO -> {
+                songs.addAll(
+                    roomRepository.getAllRadioStationsSync().map { station -> station.toRadioSong() }
+                )
+                var songIndex = MusicUtil.indexOfSongInList(songs, itemId)
+                if (songIndex == -1) {
+                    songIndex = 0
+                }
+                musicService.openQueue(songs, songIndex, true)
+            }
             AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_HISTORY,
             AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_SUGGESTIONS,
             AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_TOP_TRACKS,
             AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_QUEUE,
             -> {
-                val tracks: List<Song> = when (category) {
-                    AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_HISTORY -> topPlayedRepository.recentlyPlayedTracks()
-                    AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_SUGGESTIONS -> topPlayedRepository.recentlyPlayedTracks()
-                    AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_TOP_TRACKS -> topPlayedRepository.recentlyPlayedTracks()
-                    else -> musicService.playingQueue
-                }
+                val tracks = tracksForAutoCategory(category)
                 songs.addAll(tracks)
                 var songIndex = MusicUtil.indexOfSongInList(tracks, itemId)
                 if (songIndex == -1) {
@@ -136,6 +143,14 @@ class MediaSessionCallback(
         }
 
         if (songs.isEmpty()) {
+            val radioStations = query?.let(::matchingRadioStations).orEmpty()
+            if (radioStations.isNotEmpty()) {
+                val radioSongs = radioStations.map { it.toRadioSong() }
+                musicService.openQueue(radioSongs, 0, true)
+                musicService.play()
+                return
+            }
+
             // No focus found, search by query for song title
             query?.also {
                 songs.addAll(songRepository.songs(it))
@@ -213,5 +228,44 @@ class MediaSessionCallback(
 
     private fun openQueue(songs: ArrayList<Song>, index: Int, startPlaying: Boolean = true) {
         MusicPlayerRemote.openQueue(songs, index, startPlaying)
+    }
+
+    private fun tracksForAutoCategory(category: String?): List<Song> {
+        return when (category) {
+            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_HISTORY -> topPlayedRepository.recentlyPlayedTracks()
+            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_SUGGESTIONS -> topPlayedRepository.notRecentlyPlayedTracks().take(8)
+            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_TOP_TRACKS -> topPlayedRepository.topTracks()
+            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_QUEUE -> musicService.playingQueue
+            else -> emptyList()
+        }
+    }
+
+    private fun matchingRadioStations(query: String): List<RadioStationEntity> {
+        val normalizedQuery = query.trim()
+        if (normalizedQuery.isEmpty()) return emptyList()
+
+        return roomRepository.getAllRadioStationsSync().filter { station ->
+            station.name.contains(normalizedQuery, ignoreCase = true) ||
+                station.uri.contains(normalizedQuery, ignoreCase = true)
+        }
+    }
+
+    private fun RadioStationEntity.toRadioSong(): Song {
+        return Song(
+            id = id,
+            title = name,
+            trackNumber = 0,
+            year = 0,
+            duration = -1,
+            data = uri,
+            dateModified = System.currentTimeMillis(),
+            albumId = -1,
+            albumName = "Radio",
+            artistId = -1,
+            artistName = "Radio Stream",
+            composer = "",
+            albumArtist = "",
+            isRadio = true
+        )
     }
 }

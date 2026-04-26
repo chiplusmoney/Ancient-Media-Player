@@ -119,6 +119,10 @@ import player.music.ancient.VIRTUALIZER_STRENGTH
 import player.music.ancient.WALLPAPER_ACCENT
 import player.music.ancient.WHITELIST_MUSIC
 import player.music.ancient.YOUTUBE_DEFAULTS_INITIALIZED
+import player.music.ancient.YOUTUBE_FEED_LAST_ATTEMPT_AT
+import player.music.ancient.YOUTUBE_FEED_LAST_FAILURE_KIND
+import player.music.ancient.YOUTUBE_FEED_LAST_SYNC_AT
+import player.music.ancient.YOUTUBE_FEED_SYNC_SIGNATURE
 import player.music.ancient.extensions.getIntRes
 import player.music.ancient.extensions.getStringOrDefault
 import player.music.ancient.fragments.AlbumCoverStyle
@@ -959,6 +963,22 @@ object PreferenceUtil {
     var youtubeDefaultsInitialized: Boolean
         get() = sharedPreferences.getBoolean(YOUTUBE_DEFAULTS_INITIALIZED, false)
         set(value) = sharedPreferences.edit { putBoolean(YOUTUBE_DEFAULTS_INITIALIZED, value) }
+
+    var youtubeFeedLastSyncAt: Long
+        get() = sharedPreferences.getLong(YOUTUBE_FEED_LAST_SYNC_AT, 0L)
+        set(value) = sharedPreferences.edit { putLong(YOUTUBE_FEED_LAST_SYNC_AT, value) }
+
+    var youtubeFeedLastAttemptAt: Long
+        get() = sharedPreferences.getLong(YOUTUBE_FEED_LAST_ATTEMPT_AT, 0L)
+        set(value) = sharedPreferences.edit { putLong(YOUTUBE_FEED_LAST_ATTEMPT_AT, value) }
+
+    var youtubeFeedLastFailureKind: String
+        get() = sharedPreferences.getStringOrDefault(YOUTUBE_FEED_LAST_FAILURE_KIND, "")
+        set(value) = sharedPreferences.edit { putString(YOUTUBE_FEED_LAST_FAILURE_KIND, value) }
+
+    var youtubeFeedSyncSignature: String
+        get() = sharedPreferences.getStringOrDefault(YOUTUBE_FEED_SYNC_SIGNATURE, "")
+        set(value) = sharedPreferences.edit { putString(YOUTUBE_FEED_SYNC_SIGNATURE, value) }
 
     private val DEFAULT_HOME_SHORTCUTS = setOf(
         "history",

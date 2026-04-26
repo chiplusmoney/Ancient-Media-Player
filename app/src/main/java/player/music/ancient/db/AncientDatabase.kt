@@ -27,9 +27,10 @@ import androidx.room.RoomDatabase
         RadioCategoryEntity::class,
         TvChannelEntity::class,
         TvCategoryEntity::class,
-        YoutubeChannelEntity::class
+        YoutubeChannelEntity::class,
+        YoutubeVideoEntity::class
     ],
-    version = 27,
+    version = 28,
     exportSchema = false
 )
 abstract class AncientDatabase : RoomDatabase() {
@@ -41,4 +42,5 @@ abstract class AncientDatabase : RoomDatabase() {
     abstract fun tvChannelDao(): TvChannelDao
     abstract fun tvCategoryDao(): TvCategoryDao
     abstract fun youtubeChannelDao(): YoutubeChannelDao
+    abstract fun youtubeVideoDao(): YoutubeVideoDao
 }

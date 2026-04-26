@@ -42,3 +42,29 @@ val MIGRATION_26_27 = object : Migration(26, 27) {
         )
     }
 }
+
+val MIGRATION_27_28 = object : Migration(27, 28) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            "CREATE TABLE IF NOT EXISTS `youtube_videos` (" +
+                "`video_id` TEXT NOT NULL, " +
+                "`source_channel_id` INTEGER NOT NULL, " +
+                "`youtube_channel_id` TEXT NOT NULL, " +
+                "`title` TEXT NOT NULL, " +
+                "`description` TEXT NOT NULL, " +
+                "`published_at` TEXT NOT NULL, " +
+                "`channel_title` TEXT NOT NULL, " +
+                "`thumbnail_url` TEXT, " +
+                "PRIMARY KEY(`video_id`)" +
+                ")"
+        )
+        database.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_youtube_videos_source_channel_id` " +
+                "ON `youtube_videos` (`source_channel_id`)"
+        )
+        database.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_youtube_videos_published_at` " +
+                "ON `youtube_videos` (`published_at`)"
+        )
+    }
+}

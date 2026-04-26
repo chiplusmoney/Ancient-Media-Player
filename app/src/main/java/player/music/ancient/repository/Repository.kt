@@ -119,6 +119,12 @@ interface Repository {
     suspend fun insertYoutubeChannel(channel: YoutubeChannelEntity): Long
     suspend fun deleteYoutubeChannel(channel: YoutubeChannelEntity)
     suspend fun updateYoutubeChannel(channel: YoutubeChannelEntity)
+    fun getCachedYoutubeVideos(sourceChannelIds: List<Long>): LiveData<List<YoutubeVideoEntity>>
+    suspend fun replaceCachedYoutubeVideos(
+        sourceChannelId: Long,
+        videos: List<YoutubeVideoEntity>
+    )
+    suspend fun pruneCachedYoutubeVideos(validSourceChannelIds: List<Long>)
 }
 
 class RealRepository(
@@ -437,4 +443,15 @@ class RealRepository(
 
     override suspend fun updateYoutubeChannel(channel: YoutubeChannelEntity) =
         roomRepository.updateYoutubeChannel(channel)
+
+    override fun getCachedYoutubeVideos(sourceChannelIds: List<Long>): LiveData<List<YoutubeVideoEntity>> =
+        roomRepository.getCachedYoutubeVideos(sourceChannelIds)
+
+    override suspend fun replaceCachedYoutubeVideos(
+        sourceChannelId: Long,
+        videos: List<YoutubeVideoEntity>
+    ) = roomRepository.replaceCachedYoutubeVideos(sourceChannelId, videos)
+
+    override suspend fun pruneCachedYoutubeVideos(validSourceChannelIds: List<Long>) =
+        roomRepository.pruneCachedYoutubeVideos(validSourceChannelIds)
 }

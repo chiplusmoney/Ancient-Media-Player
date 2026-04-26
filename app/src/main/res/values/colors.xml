@@ -1,47 +1,112 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <!-- ════════════════════════════════════════════════════════ -->
+    <!-- Aether Gold / Sonic Aurora Design System                -->
+    <!-- ════════════════════════════════════════════════════════ -->
+
+    <!-- Primary Gold -->
+    <color name="aether_primary">#F5CE53</color>
+    <color name="aether_primary_container">#C09D24</color>
+    <color name="aether_primary_dim">#E6C047</color>
+    <color name="aether_on_primary">#584500</color>
+    <color name="aether_on_primary_container">#2C2100</color>
+
+    <!-- Secondary -->
+    <color name="aether_secondary">#FAE44C</color>
+    <color name="aether_secondary_container">#6B5F00</color>
+    <color name="aether_on_secondary">#5D5200</color>
+
+    <!-- Surfaces — The Depth Stack -->
+    <color name="aether_background">#0E0E0E</color>
+    <color name="aether_surface">#0E0E0E</color>
+    <color name="aether_surface_dim">#0E0E0E</color>
+    <color name="aether_surface_bright">#2C2C2C</color>
+    <color name="aether_surface_container_lowest">#000000</color>
+    <color name="aether_surface_container_low">#131313</color>
+    <color name="aether_surface_container">#1A1919</color>
+    <color name="aether_surface_container_high">#201F1F</color>
+    <color name="aether_surface_container_highest">#262626</color>
+    <color name="aether_surface_variant">#262626</color>
+
+    <!-- On-Surface -->
+    <color name="aether_on_surface">#FFFFFF</color>
+    <color name="aether_on_surface_variant">#ADAAAA</color>
+    <color name="aether_on_background">#FFFFFF</color>
+
+    <!-- Outline -->
+    <color name="aether_outline">#767575</color>
+    <color name="aether_outline_variant">#484847</color>
+
+    <!-- Error -->
+    <color name="aether_error">#FF7351</color>
+    <color name="aether_error_container">#B92902</color>
+    <color name="aether_on_error">#450900</color>
+
+    <!-- Tertiary -->
+    <color name="aether_tertiary">#F4FF87</color>
+    <color name="aether_tertiary_container">#E4F265</color>
+
+    <!-- Glassmorphism -->
+    <color name="glass_surface_60">#991A1919</color>
+    <color name="glass_surface_40">#661A1919</color>
+    <color name="glass_highlight_5">#0DFFFFFF</color>
+    <color name="glass_highlight_8">#14FFFFFF</color>
+    <color name="glass_highlight_12">#1FFFFFFF</color>
+
+    <!-- ════════════════════════════════════════════════════════ -->
+    <!-- Legacy Compatibility Aliases                           -->
+    <!-- (mapped to Aether Gold tokens)                         -->
+    <!-- ════════════════════════════════════════════════════════ -->
+
     <color name="window_color">#FDF8ED</color>
     <color name="window_color_light">#FDF8ED</color>
-    <color name="window_color_dark">#1A110B</color>
+    <color name="window_color_dark">@color/aether_background</color>
 
     <color name="twenty_percent_black_overlay">#34000000</color>
     <color name="app_shortcut_default_foreground">#607d8b</color>
     <color name="app_shortcut_default_background">#f5f5f5</color>
-    <color name="md_indigo_A400">#8B4513</color>
-    <color name="dark_color">#8B4513</color>
-    <color name="black_color">#8B4513</color>
+    <color name="md_indigo_A400">@color/aether_primary_container</color>
+    <color name="dark_color">@color/aether_primary_container</color>
+    <color name="black_color">@color/aether_primary_container</color>
 
-    <color name="darkColorPrimary">#8B4513</color>
-    <color name="darkColorSurface">#8B4513</color>
+    <color name="darkColorPrimary">@color/aether_surface_container</color>
+    <color name="darkColorSurface">@color/aether_surface</color>
 
     <color name="darkerColorSurface">#FFF3D8</color>
     <color name="lighterColorSurface">#F5DEB3</color>
 
-    <color name="blackColorSurface">#000000</color>
+    <color name="blackColorSurface">@color/aether_surface_container_lowest</color>
 
     <color name="transparent">#00000000</color>
     <color name="semi_transparent">#20000000</color>
-    <!-- card colors -->
-    <color name="card_background">#FFF3D8</color>
-    <color name="card_shadow_1">#d4d4d4</color>
-    <color name="card_shadow_2">#dddddd</color>
+
+    <!-- Card colors -->
+    <color name="card_background">@color/aether_surface_container_high</color>
+    <color name="card_shadow_1">#141414</color>
+    <color name="card_shadow_2">#1A1A1A</color>
 
     <color name="progress_gray">#FFD8D8D8</color>
-    <color name="default_blue_light">#ff33b5e5</color>
+    <color name="default_blue_light">@color/aether_primary</color>
 
     <color name="bottomSheetColorLight">#FFF3D8</color>
-    <color name="bottomSheetColorDark">#2A1B12</color>
-    <color name="bottomSheetColorBlack">#1A110B</color>
+    <color name="bottomSheetColorDark">@color/aether_surface_container</color>
+    <color name="bottomSheetColorBlack">@color/aether_surface_container_lowest</color>
 
     <color name="bottomSheetColor">#FFF3D8</color>
     <color name="widget_md3_bg_color">@color/lighterColorSurface</color>
-    <color name="widget_circle_button_color">@color/md_indigo_A400</color>
+    <color name="widget_circle_button_color">@color/aether_primary_container</color>
     <color name="widget_md3_button_bg_color">@color/lighterColorSurface</color>
-    <!-- Radio Premium Colors -->
-    <color name="live_indicator_color">#FFD700</color> <!-- Gold -->
-    <color name="glass_white">#4DFFFFFF</color>
-    <color name="glass_stroke">#80FFFFFF</color>
-    <color name="radio_item_bg_start">#338B4513</color>
-    <color name="radio_item_bg_end">#1A110B</color>
+
+    <!-- Radio / YouTube Premium Colors -->
+    <color name="live_indicator_color">@color/aether_primary</color>
+    <color name="glass_white">@color/glass_highlight_12</color>
+    <color name="glass_stroke">@color/glass_highlight_8</color>
+    <color name="radio_item_bg_start">@color/glass_surface_40</color>
+    <color name="radio_item_bg_end">@color/aether_surface</color>
+
+    <!-- Explicit text color resources for layouts -->
+    <color name="textColorPrimary">@color/aether_on_surface</color>
+    <color name="textColorSecondary">@color/aether_on_surface_variant</color>
+
 </resources>

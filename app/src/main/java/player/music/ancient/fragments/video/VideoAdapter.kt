@@ -1,18 +1,21 @@
 package player.music.ancient.fragments.video
 
 import android.net.Uri
+import android.view.View
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.core.view.ViewCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import player.music.ancient.R
+import player.music.ancient.activities.VideoPlayerActivity
 import player.music.ancient.databinding.ItemVideoEntryBinding
 import player.music.ancient.model.LocalVideoItem
 
 class VideoAdapter(
-    private val onClick: (LocalVideoItem) -> Unit
+    private val onClick: (LocalVideoItem, View) -> Unit
 ) : ListAdapter<LocalVideoItem, VideoAdapter.VideoViewHolder>(DiffCallback) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VideoViewHolder {
@@ -32,13 +35,17 @@ class VideoAdapter(
             binding.title.text = video.title
             binding.subtitle.text = video.folderName
             binding.meta.text = formatDuration(video.durationMs)
+            ViewCompat.setTransitionName(
+                binding.image,
+                VideoPlayerActivity.transitionNameFor(video.id)
+            )
             Glide.with(binding.image.context)
                 .load(Uri.parse(video.uri))
                 .placeholder(R.drawable.ic_video)
                 .error(R.drawable.ic_video)
                 .centerCrop()
                 .into(binding.image)
-            binding.root.setOnClickListener { onClick(video) }
+            binding.root.setOnClickListener { onClick(video, binding.image) }
         }
     }
 

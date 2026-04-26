@@ -12,13 +12,18 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.bumptech.glide.Glide
 import com.github.dhaval2404.imagepicker.ImagePicker
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import player.music.ancient.R
@@ -30,13 +35,12 @@ import player.music.ancient.fragments.base.AbsMainActivityFragment
 import player.music.ancient.util.PreferenceUtil
 import player.music.ancient.util.RadioImageStore
 import player.music.ancient.util.ToolbarContentTintHelper
-import com.bumptech.glide.Glide
 
 class YoutubeFragment : AbsMainActivityFragment(R.layout.fragment_youtube) {
     private val viewModel: YoutubeViewModel by viewModel()
     private var _binding: FragmentYoutubeBinding? = null
     private val binding get() = _binding!!
-    private lateinit var adapter: YoutubeAdapter
+
     private var pendingImageCallback: ((String) -> Unit)? = null
     private var seedStarted = false
 
@@ -47,17 +51,28 @@ class YoutubeFragment : AbsMainActivityFragment(R.layout.fragment_youtube) {
             if (result.resultCode == Activity.RESULT_OK) {
                 val pickedUri = result.data?.data ?: return@registerForActivityResult
                 lifecycleScope.launch {
-                    val savedImageUri = RadioImageStore.persistStationImage(requireContext(), pickedUri)
+                    val savedImageUri =
+                        RadioImageStore.persistStationImage(requireContext(), pickedUri)
                     if (savedImageUri == null) {
-                        Toast.makeText(requireContext(), "Couldn't save the selected image", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            requireContext(),
+                            "Couldn't save the selected image",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     } else {
                         callback(savedImageUri)
                     }
                 }
             } else if (result.resultCode == ImagePicker.RESULT_ERROR) {
-                Toast.makeText(requireContext(), ImagePicker.getError(result.data), Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    requireContext(),
+                    ImagePicker.getError(result.data),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
+
+    private lateinit var feedAdapter: YoutubeFeedAdapter
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -65,24 +80,165 @@ class YoutubeFragment : AbsMainActivityFragment(R.layout.fragment_youtube) {
         mainActivity.setSupportActionBar(binding.appBarLayout.toolbar)
         binding.appBarLayout.title = getString(R.string.youtube)
 
-        binding.emptyState.iconView.setImageResource(R.drawable.ic_youtube)
-        binding.emptyState.titleView.text = "No YouTube Channels"
-        binding.emptyState.messageView.text = "Add Christian YouTube channels you want to watch from the app."
-
-        adapter = YoutubeAdapter(
-            onClick = ::openChannel,
-            onLongClick = ::showEditOrDeleteDialog
+        feedAdapter = YoutubeFeedAdapter(
+            onVideoClick = { video ->
+                openVideo(video.videoId)
+            }
         )
+
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        binding.recyclerView.adapter = adapter
+        binding.recyclerView.adapter = feedAdapter
         binding.addChannelFab.setOnClickListener { showChannelBottomSheet() }
+        binding.stateActionButton.setOnClickListener(::handleStateActionClick)
 
         viewModel.youtubeChannels.observe(viewLifecycleOwner) { channels ->
             val currentChannels = channels.orEmpty()
+            val isWaitingForSeed = currentChannels.isEmpty() && !PreferenceUtil.youtubeDefaultsInitialized
             syncKnownChannels(currentChannels)
-            adapter.submitList(currentChannels)
-            binding.emptyState.root.visibility = if (currentChannels.isEmpty()) View.VISIBLE else View.GONE
-            binding.recyclerView.visibility = if (currentChannels.isEmpty()) View.GONE else View.VISIBLE
+
+            if (isWaitingForSeed) {
+                renderUiState(YoutubeFeedUiState(isInitialLoading = true))
+                return@observe
+            }
+
+            viewModel.onChannelsChanged(currentChannels)
+        }
+
+        viewModel.uiState.observe(viewLifecycleOwner, ::renderUiState)
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.messages.collect { placeholder ->
+                    val stateText = resolveStateText(placeholder)
+                    val snackbar = Snackbar.make(
+                        binding.root,
+                        stateText.message,
+                        Snackbar.LENGTH_LONG
+                    )
+                    if (placeholder.action == YoutubePlaceholderAction.RETRY) {
+                        snackbar.setAction(R.string.youtube_retry_action) {
+                            viewModel.refreshFeed(force = true)
+                        }
+                    }
+                    snackbar.show()
+                }
+            }
+        }
+    }
+
+    private fun renderUiState(state: YoutubeFeedUiState) {
+        if (_binding == null) return
+
+        feedAdapter.submitList(state.videos)
+
+        val hasContent = state.videos.isNotEmpty()
+        val placeholder = state.placeholder
+        val stateText = placeholder?.let(::resolveStateText)
+        val showState = !hasContent && (state.isInitialLoading || placeholder != null)
+
+        binding.recyclerView.isVisible = hasContent
+        binding.stateContainer.isVisible = showState
+        binding.stateProgress.isVisible = state.isInitialLoading && !hasContent
+        binding.refreshProgress.isVisible = state.isRefreshing
+
+        binding.stateIcon.isVisible = placeholder != null
+        binding.stateTitle.text = if (state.isInitialLoading && !hasContent) {
+            getString(R.string.youtube_loading_title)
+        } else {
+            stateText?.title.orEmpty()
+        }
+        binding.stateMessage.text = if (state.isInitialLoading && !hasContent) {
+            getString(R.string.youtube_loading_message)
+        } else {
+            stateText?.message.orEmpty()
+        }
+        binding.stateActionButton.isVisible =
+            placeholder?.action != null && placeholder.action != YoutubePlaceholderAction.NONE
+        binding.stateActionButton.text = when (placeholder?.action) {
+            YoutubePlaceholderAction.ADD_CHANNEL -> getString(R.string.youtube_add_channel_action)
+            YoutubePlaceholderAction.RETRY -> getString(R.string.youtube_retry_action)
+            YoutubePlaceholderAction.NONE,
+            null -> ""
+        }
+
+        binding.appBarLayout.toolbar.menu.findItem(MENU_REFRESH_FEED)?.isEnabled =
+            !state.isInitialLoading && !state.isRefreshing
+    }
+
+    private fun resolveStateText(placeholder: YoutubePlaceholderState): StateText {
+        return when (placeholder.kind) {
+            YoutubePlaceholderKind.NO_CHANNELS -> StateText(
+                title = getString(R.string.youtube_no_channels_title),
+                message = getString(R.string.youtube_no_channels_message)
+            )
+
+            YoutubePlaceholderKind.EMPTY_FEED -> StateText(
+                title = getString(R.string.youtube_feed_empty_title),
+                message = getString(R.string.youtube_feed_empty_message)
+            )
+
+            YoutubePlaceholderKind.NETWORK_ERROR -> StateText(
+                title = getString(R.string.youtube_feed_network_title),
+                message = getString(R.string.youtube_feed_network_message)
+            )
+
+            YoutubePlaceholderKind.QUOTA_EXCEEDED -> StateText(
+                title = getString(R.string.youtube_feed_quota_title),
+                message = getString(R.string.youtube_feed_quota_message)
+            )
+
+            YoutubePlaceholderKind.CONFIGURATION_ERROR -> StateText(
+                title = getString(R.string.youtube_feed_configuration_title),
+                message = getString(R.string.youtube_feed_configuration_message)
+            )
+
+            YoutubePlaceholderKind.CHANNEL_RESOLUTION_ERROR -> StateText(
+                title = getString(R.string.youtube_feed_resolution_title),
+                message = getString(R.string.youtube_feed_resolution_message)
+            )
+
+            YoutubePlaceholderKind.SERVICE_ERROR -> StateText(
+                title = getString(R.string.youtube_feed_service_title),
+                message = getString(
+                    R.string.youtube_feed_service_message,
+                    placeholder.detail ?: "unknown"
+                )
+            )
+
+            YoutubePlaceholderKind.UNKNOWN_ERROR -> StateText(
+                title = getString(R.string.youtube_feed_unknown_title),
+                message = getString(R.string.youtube_feed_unknown_message)
+            )
+        }
+    }
+
+    private fun handleStateActionClick(@Suppress("UNUSED_PARAMETER") view: View) {
+        when (viewModel.uiState.value?.placeholder?.action) {
+            YoutubePlaceholderAction.ADD_CHANNEL -> showChannelBottomSheet()
+            YoutubePlaceholderAction.RETRY -> viewModel.refreshFeed(force = true)
+            YoutubePlaceholderAction.NONE,
+            null -> Unit
+        }
+    }
+
+    private fun openVideo(videoId: String) {
+        val appIntent = Intent(Intent.ACTION_VIEW, Uri.parse("vnd.youtube:$videoId"))
+        try {
+            startActivity(appIntent)
+        } catch (_: ActivityNotFoundException) {
+            val webIntent = Intent(
+                Intent.ACTION_VIEW,
+                Uri.parse("https://www.youtube.com/watch?v=$videoId")
+            )
+            try {
+                startActivity(webIntent)
+            } catch (_: ActivityNotFoundException) {
+                Toast.makeText(
+                    requireContext(),
+                    "No app to open YouTube link",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
     }
 
@@ -112,6 +268,9 @@ class YoutubeFragment : AbsMainActivityFragment(R.layout.fragment_youtube) {
         menu.removeItem(R.id.action_layout_type)
         menu.removeItem(R.id.action_sort_order)
         menu.removeItem(R.id.action_radio)
+        menu.add(Menu.NONE, MENU_REFRESH_FEED, Menu.NONE, R.string.youtube_refresh_action)
+            .setIcon(R.drawable.ic_refresh)
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         ToolbarContentTintHelper.handleOnCreateOptionsMenu(
             requireContext(),
             binding.appBarLayout.toolbar,
@@ -127,12 +286,20 @@ class YoutubeFragment : AbsMainActivityFragment(R.layout.fragment_youtube) {
                 true
             }
 
+            MENU_REFRESH_FEED -> {
+                viewModel.refreshFeed(force = true)
+                true
+            }
+
             else -> false
         }
     }
 
     override fun onPrepareMenu(menu: Menu) {
-        ToolbarContentTintHelper.handleOnPrepareOptionsMenu(requireActivity(), binding.appBarLayout.toolbar)
+        ToolbarContentTintHelper.handleOnPrepareOptionsMenu(
+            requireActivity(),
+            binding.appBarLayout.toolbar
+        )
     }
 
     private fun showChannelBottomSheet(channel: YoutubeChannelEntity? = null) {
@@ -175,15 +342,23 @@ class YoutubeFragment : AbsMainActivityFragment(R.layout.fragment_youtube) {
                 .takeUnless { it.isNullOrBlank() } ?: selectedImageUri
 
             if (name.isBlank() || url.isBlank()) {
-                Toast.makeText(requireContext(), "Name and channel URL are required", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    requireContext(),
+                    "Name and channel URL are required",
+                    Toast.LENGTH_SHORT
+                ).show()
                 return@setOnClickListener
             }
 
             if (channel == null) {
-                viewModel.insertYoutubeChannel(YoutubeChannelEntity(name = name, url = url, imageUri = imageSource))
+                viewModel.insertYoutubeChannel(
+                    YoutubeChannelEntity(name = name, url = url, imageUri = imageSource)
+                )
             } else {
                 cleanupReplacedImage(channel.imageUri, imageSource)
-                viewModel.updateYoutubeChannel(channel.copy(name = name, url = url, imageUri = imageSource))
+                viewModel.updateYoutubeChannel(
+                    channel.copy(name = name, url = url, imageUri = imageSource)
+                )
             }
             bottomSheet.dismiss()
         }
@@ -226,7 +401,11 @@ class YoutubeFragment : AbsMainActivityFragment(R.layout.fragment_youtube) {
         try {
             startActivity(browserIntent)
         } catch (_: ActivityNotFoundException) {
-            Toast.makeText(requireContext(), "Couldn't open this YouTube channel", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                requireContext(),
+                "Couldn't open this YouTube channel",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
@@ -266,15 +445,33 @@ class YoutubeFragment : AbsMainActivityFragment(R.layout.fragment_youtube) {
 
     companion object {
         private const val YOUTUBE_PACKAGE = "com.google.android.youtube"
+        private const val MENU_REFRESH_FEED = 2301
 
         private val KNOWN_CHANNELS = listOf(
             YoutubeChannelEntity(name = "GOD TV", url = "https://www.youtube.com/godtv"),
-            YoutubeChannelEntity(name = "Daystar Television", url = "https://www.youtube.com/user/DaystarTV"),
+            YoutubeChannelEntity(
+                name = "Daystar Television",
+                url = "https://www.youtube.com/user/DaystarTV"
+            ),
             YoutubeChannelEntity(name = "TBN", url = "https://www.youtube.com/tbn"),
             YoutubeChannelEntity(name = "Shalom World", url = "https://www.youtube.com/shalomworld"),
-            YoutubeChannelEntity(name = "Jesus Film Project", url = "https://www.youtube.com/user/jesusfilm"),
-            YoutubeChannelEntity(name = "The Chosen", url = "https://www.youtube.com/channel/UCBXOFnNTULFaAnj24PAeblg"),
-            YoutubeChannelEntity(name = "Hope Channel", url = "https://www.youtube.com/results?search_query=Hope+Channel+official")
+            YoutubeChannelEntity(
+                name = "Jesus Film Project",
+                url = "https://www.youtube.com/user/jesusfilm"
+            ),
+            YoutubeChannelEntity(
+                name = "The Chosen",
+                url = "https://www.youtube.com/channel/UCBXOFnNTULFaAnj24PAeblg"
+            ),
+            YoutubeChannelEntity(
+                name = "Hope Channel",
+                url = "https://www.youtube.com/results?search_query=Hope+Channel+official"
+            )
         )
     }
+
+    private data class StateText(
+        val title: String,
+        val message: String
+    )
 }
