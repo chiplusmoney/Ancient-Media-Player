@@ -43,6 +43,10 @@ android {
         signingConfigs.getByName("debug")
     }
 
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+
     buildTypes {
         getByName("release") {
             isShrinkResources = true
@@ -185,6 +189,8 @@ dependencies {
     implementation(libs.dhaval2404.imagepicker)
 
     testImplementation(libs.junit)
+    testImplementation("org.mockito:mockito-core:4.11.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:4.1.0")
 }
 
 fun getProperties(fileName: String): Properties? {
