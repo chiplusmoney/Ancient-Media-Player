@@ -484,31 +484,42 @@ object MusicUtil : KoinComponent {
 
                 // Step 2: Remove files from card
                 cursor.moveToFirst()
+                val deletedIds = mutableListOf<Long>()
                 while (!cursor.isAfterLast) {
                     val id: Int = cursor.getInt(0)
                     val name: String = cursor.getString(1)
                     try { // File.delete can throw a security exception
                         val f = File(name)
                         if (f.delete()) {
-                            // Step 3: Remove selected track from the database
-                            context.contentResolver.delete(
-                                ContentUris.withAppendedId(
-                                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                                    id.toLong()
-                                ), null, null
-                            )
+                            deletedIds.add(id.toLong())
                             deletedCount++
                         } else {
                             // I'm not sure if we'd ever get here (deletion would
                             // have to fail, but no exception thrown)
                             Log.e("MusicUtils", "Failed to delete file $name")
                         }
-                        cursor.moveToNext()
                     } catch (ex: SecurityException) {
-                        cursor.moveToNext()
                     } catch (e: NullPointerException) {
                         Log.e("MusicUtils", "Failed to find file $name")
                     }
+                    cursor.moveToNext()
+                }
+
+                if (deletedIds.isNotEmpty()) {
+                    val deleteSelection = StringBuilder()
+                    deleteSelection.append(BaseColumns._ID + " IN (")
+                    for (i in deletedIds.indices) {
+                        deleteSelection.append(deletedIds[i])
+                        if (i < deletedIds.size - 1) {
+                            deleteSelection.append(",")
+                        }
+                    }
+                    deleteSelection.append(")")
+                    context.contentResolver.delete(
+                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                        deleteSelection.toString(),
+                        null
+                    )
                 }
                 cursor.close()
             }
