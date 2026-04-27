@@ -29,7 +29,6 @@ import player.music.ancient.databinding.PreferenceDialogLibraryCategoriesBinding
 import player.music.ancient.extensions.colorButtons
 import player.music.ancient.extensions.colorControlNormal
 import player.music.ancient.extensions.materialDialog
-import player.music.ancient.extensions.showToast
 import player.music.ancient.model.CategoryInfo
 import player.music.ancient.util.PreferenceUtil
 
