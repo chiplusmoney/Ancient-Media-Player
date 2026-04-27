@@ -43,6 +43,24 @@ class MainActivity : AbsCastActivity() {
     companion object {
         const val TAG = "MainActivity"
         const val EXPAND_PANEL = "expand_panel"
+        internal fun parseLongFromIntent(
+            intent: Intent,
+            longKey: String,
+            stringKey: String,
+        ): Long {
+            var id = intent.getLongExtra(longKey, -1)
+            if (id < 0) {
+                val idString = intent.getStringExtra(stringKey)
+                if (idString != null) {
+                    try {
+                        id = idString.toLong()
+                    } catch (e: NumberFormatException) {
+                        logE(e)
+                    }
+                }
+            }
+            return id
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -224,22 +242,4 @@ class MainActivity : AbsCastActivity() {
         }
     }
 
-    private fun parseLongFromIntent(
-        intent: Intent,
-        longKey: String,
-        stringKey: String,
-    ): Long {
-        var id = intent.getLongExtra(longKey, -1)
-        if (id < 0) {
-            val idString = intent.getStringExtra(stringKey)
-            if (idString != null) {
-                try {
-                    id = idString.toLong()
-                } catch (e: NumberFormatException) {
-                    logE(e)
-                }
-            }
-        }
-        return id
-    }
 }
