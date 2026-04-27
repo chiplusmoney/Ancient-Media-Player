@@ -1,8 +1,6 @@
 package player.music.ancient
 
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import androidx.appcompat.app.AppCompatActivity
 
 /**
@@ -17,8 +15,8 @@ open class ATHActivity : AppCompatActivity() {
         updateTime = System.currentTimeMillis()
     }
 
-    override fun onResume() {
-        super.onResume()
+    override fun onPostResume() {
+        super.onPostResume()
         if (ATH.didThemeValuesChange(this, updateTime)) {
             onThemeChanged()
         }
@@ -29,8 +27,6 @@ open class ATHActivity : AppCompatActivity() {
     }
 
     fun postRecreate() {
-        // hack to prevent java.lang.RuntimeException: Performing pause of activity that is not resumed
-        // makes sure recreate() is called right after and not in onResume()
-        Handler(Looper.getMainLooper()).post { recreate() }
+        recreate()
     }
 }
