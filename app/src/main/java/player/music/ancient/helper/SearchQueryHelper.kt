@@ -37,108 +37,41 @@ object SearchQueryHelper : KoinComponent {
         val albumName = extras.getString(MediaStore.EXTRA_MEDIA_ALBUM, null)
         val titleName = extras.getString(MediaStore.EXTRA_MEDIA_TITLE, null)
 
-        var songs = listOf<Song>()
-        if (artistName != null && albumName != null && titleName != null) {
-            songs = songRepository.songs(
-                songRepository.makeSongCursor(
-                    ARTIST_SELECTION + AND + ALBUM_SELECTION + AND + TITLE_SELECTION,
-                    arrayOf(
-                        artistName.lowercase(),
-                        albumName.lowercase(),
-                        titleName.lowercase()
-                    )
-                )
-            )
+        val candidates = sequence {
+            if (artistName != null && albumName != null && titleName != null) {
+                yield(Pair(ARTIST_SELECTION + AND + ALBUM_SELECTION + AND + TITLE_SELECTION, arrayOf(artistName, albumName, titleName)))
+            }
+            if (artistName != null && titleName != null) {
+                yield(Pair(ARTIST_SELECTION + AND + TITLE_SELECTION, arrayOf(artistName, titleName)))
+            }
+            if (albumName != null && titleName != null) {
+                yield(Pair(ALBUM_SELECTION + AND + TITLE_SELECTION, arrayOf(albumName, titleName)))
+            }
+            if (artistName != null) {
+                yield(Pair(ARTIST_SELECTION, arrayOf(artistName)))
+            }
+            if (albumName != null) {
+                yield(Pair(ALBUM_SELECTION, arrayOf(albumName)))
+            }
+            if (titleName != null) {
+                yield(Pair(TITLE_SELECTION, arrayOf(titleName)))
+            }
+            if (query != null) {
+                yield(Pair(ARTIST_SELECTION, arrayOf(query)))
+                yield(Pair(ALBUM_SELECTION, arrayOf(query)))
+                yield(Pair(TITLE_SELECTION, arrayOf(query)))
+            }
         }
-        if (songs.isNotEmpty()) {
-            return songs
-        }
-        if (artistName != null && titleName != null) {
-            songs = songRepository.songs(
-                songRepository.makeSongCursor(
-                    ARTIST_SELECTION + AND + TITLE_SELECTION,
-                    arrayOf(
-                        artistName.lowercase(),
-                        titleName.lowercase()
-                    )
-                )
-            )
-        }
-        if (songs.isNotEmpty()) {
-            return songs
-        }
-        if (albumName != null && titleName != null) {
-            songs = songRepository.songs(
-                songRepository.makeSongCursor(
-                    ALBUM_SELECTION + AND + TITLE_SELECTION,
-                    arrayOf(
-                        albumName.lowercase(),
-                        titleName.lowercase()
-                    )
-                )
-            )
-        }
-        if (songs.isNotEmpty()) {
-            return songs
-        }
-        if (artistName != null) {
-            songs = songRepository.songs(
-                songRepository.makeSongCursor(
-                    ARTIST_SELECTION,
-                    arrayOf(artistName.lowercase())
-                )
-            )
-        }
-        if (songs.isNotEmpty()) {
-            return songs
-        }
-        if (albumName != null) {
-            songs = songRepository.songs(
-                songRepository.makeSongCursor(
-                    ALBUM_SELECTION,
-                    arrayOf(albumName.lowercase())
-                )
-            )
-        }
-        if (songs.isNotEmpty()) {
-            return songs
-        }
-        if (titleName != null) {
-            songs = songRepository.songs(
-                songRepository.makeSongCursor(
-                    TITLE_SELECTION,
-                    arrayOf(titleName.lowercase())
-                )
-            )
-        }
-        if (songs.isNotEmpty()) {
-            return songs
-        }
-        songs = songRepository.songs(
-            songRepository.makeSongCursor(
-                ARTIST_SELECTION,
-                arrayOf(query.lowercase())
-            )
-        )
 
-        if (songs.isNotEmpty()) {
-            return songs
-        }
-        songs = songRepository.songs(
-            songRepository.makeSongCursor(
-                ALBUM_SELECTION,
-                arrayOf(query.lowercase())
+        for ((selection, args) in candidates) {
+            val songs = songRepository.songs(
+                songRepository.makeSongCursor(selection, args.map { it.lowercase() }.toTypedArray())
             )
-        )
-        if (songs.isNotEmpty()) {
-            return songs
+            if (songs.isNotEmpty()) {
+                return songs
+            }
         }
-        songs = songRepository.songs(
-            songRepository.makeSongCursor(
-                TITLE_SELECTION,
-                arrayOf(query.lowercase())
-            )
-        )
-        return songs.ifEmpty { ArrayList() }
+
+        return emptyList()
     }
 }
