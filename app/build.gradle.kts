@@ -183,6 +183,8 @@ dependencies {
     implementation(libs.androidx.exoplayer.hls)
     implementation(libs.androidx.exoplayer.ui)
     implementation(libs.dhaval2404.imagepicker)
+
+    testImplementation(libs.junit)
 }
 
 fun getProperties(fileName: String): Properties? {

@@ -167,18 +167,16 @@ object BackupHelper : KoinComponent {
     }
 
     private fun restoreImages(context: Context, zipIn: ZipInputStream, zipEntry: ZipEntry) {
-        val file = File(
-            context.filesDir.path, zipEntry.getFileName()
-        )
+        val targetDir = context.filesDir
+        val file = isPathSafe(targetDir, zipEntry) ?: return
         file.outputStream().buffered().use { bos ->
             zipIn.copyTo(bos)
         }
     }
 
     private fun restorePreferences(context: Context, zipIn: ZipInputStream, zipEntry: ZipEntry) {
-        val file = File(
-            context.filesDir.parent!! + File.separator + "shared_prefs" + File.separator + zipEntry.getFileName()
-        )
+        val targetDir = File(context.filesDir.parent!!, "shared_prefs")
+        val file = isPathSafe(targetDir, zipEntry) ?: return
         if (file.exists()) {
             file.delete()
         }
@@ -227,10 +225,7 @@ object BackupHelper : KoinComponent {
         if (!parentFolder.exists()) {
             parentFolder.mkdirs()
         }
-        val file = File(
-            parentFolder,
-            zipEntry.getFileName()
-        )
+        val file = isPathSafe(parentFolder, zipEntry) ?: return
         file.outputStream().buffered()
             .use { bos ->
                 zipIn.copyTo(bos)
@@ -242,8 +237,8 @@ object BackupHelper : KoinComponent {
         zipIn: ZipInputStream,
         zipEntry: ZipEntry
     ) {
-        val file =
-            File(context.filesDir.parentFile, "shared_prefs".child(zipEntry.getFileName()))
+        val targetDir = File(context.filesDir.parentFile, "shared_prefs")
+        val file = isPathSafe(targetDir, zipEntry) ?: return
         file.outputStream().buffered().use { bos ->
             zipIn.copyTo(bos)
         }
@@ -289,7 +284,18 @@ object BackupHelper : KoinComponent {
     }
 
     private fun ZipEntry.getFileName(): String {
-        return name.substring(name.lastIndexOf(File.separator) + 1)
+        return name.substringAfterLast(File.separatorChar).substringAfterLast('/')
+    }
+
+    private fun isPathSafe(targetDir: File, zipEntry: ZipEntry): File? {
+        val fileName = zipEntry.getFileName()
+        val targetFile = File(targetDir, fileName)
+        val canonicalPath = targetFile.canonicalPath
+        return if (canonicalPath.startsWith(targetDir.canonicalPath + File.separator)) {
+            targetFile
+        } else {
+            null
+        }
     }
 
     fun getTimeStamp(): String {
