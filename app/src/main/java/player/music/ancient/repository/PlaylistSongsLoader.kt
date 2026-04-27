@@ -58,8 +58,8 @@ object PlaylistSongsLoader {
         return songs
     }
 
-    // TODO duplicated in [PlaylistRepository.kt]
-    private fun getPlaylistSongFromCursorImpl(cursor: Cursor, playlistId: Long): PlaylistSong {
+    @JvmStatic
+    fun getPlaylistSongFromCursorImpl(cursor: Cursor, playlistId: Long): PlaylistSong {
         val id = cursor.getLong(Members.AUDIO_ID)
         val title = cursor.getString(AudioColumns.TITLE)
         val trackNumber = cursor.getInt(AudioColumns.TRACK)
