@@ -41,3 +41,4 @@ app/normal/release/
 /app/release/
 
 .kotlin
+gradle-9.3.1/
