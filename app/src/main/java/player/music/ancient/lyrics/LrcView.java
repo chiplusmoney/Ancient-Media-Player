@@ -399,11 +399,6 @@ public class LrcView extends View {
                 });
     }
 
-    @Deprecated
-    public void onDrag(long time) {
-        updateTime(time);
-    }
-
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         super.onLayout(changed, left, top, right, bottom);
