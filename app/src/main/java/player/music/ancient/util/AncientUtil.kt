@@ -95,7 +95,6 @@ object AncientUtil {
                                 // Skip local and link-local addresses
                                 if (isIPv4 && !addr.isLinkLocalAddress && !addr.isSiteLocalAddress) continue
                                 if (isIPv4) {
-                                    Log.d("AncientUtil", "Using IP address: $sAddr")
                                     return sAddr
                                 }
                             } else {
@@ -106,7 +105,6 @@ object AncientUtil {
                                     } else {
                                         sAddr.substring(0, delim).uppercase()
                                     }
-                                    Log.d("AncientUtil", "Using IPv6 address: $processedAddr")
                                     return processedAddr
                                 }
                             }

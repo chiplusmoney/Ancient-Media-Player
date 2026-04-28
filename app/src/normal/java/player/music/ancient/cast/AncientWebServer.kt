@@ -40,8 +40,7 @@ class AncientWebServer(val context: Context) : NanoHTTPD(findAndInitializePort()
     override fun start() {
         try {
             super.start()
-            val ipAddress = AncientUtil.getIpAddress(true)
-            CastServerUtils.logInfo("Server started successfully on port $currentServerPort with IP: $ipAddress")
+            CastServerUtils.logInfo("Server started successfully on port $currentServerPort")
         } catch (e: Exception) {
             CastServerUtils.logError("Failed to start server: ${e.message}")
             throw e
@@ -59,7 +58,7 @@ class AncientWebServer(val context: Context) : NanoHTTPD(findAndInitializePort()
 
     override fun serve(session: IHTTPSession?): Response {
         try {
-            CastServerUtils.logInfo("Received request: ${session?.uri} from ${session?.remoteIpAddress}")
+            CastServerUtils.logInfo("Received request: ${session?.uri}")
             CastServerUtils.logInfo("Headers: ${session?.headers}")
             
             if (session?.uri?.contains(PART_COVER_ART) == true) {
